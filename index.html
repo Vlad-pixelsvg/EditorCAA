@@ -188,8 +188,10 @@
       overflow-y: auto;
       padding: 30px;
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 30px;
     }
 
     .book-page {
@@ -304,17 +306,53 @@
     .hide-symbols .symbol-box { display: none; }
     .hide-symbols .caa-token { height: auto; border: none; background: transparent; width: auto; padding: 2px; }
 
+    /* REGOLE DI STAMPA PDF MIGLIORATE */
     @media print {
-      body { background: white; }
-      .ribbon, .pages-sidebar { display: none !important; }
-      .editor-container { padding: 0; }
-      .book-page { box-shadow: none; width: 100% !important; padding: 0; height: auto !important; overflow: visible; }
-      .caa-token {
-        border: none !important;
-        background: transparent !important;
+      html, body {
+        background: white !important;
+        height: auto !important;
+        overflow: visible !important;
       }
+      
+      .ribbon, .pages-sidebar { 
+        display: none !important; 
+      }
+
+      .studio-workspace, .editor-container { 
+        display: block !important; 
+        overflow: visible !important; 
+        padding: 0 !important; 
+        margin: 0 !important; 
+        height: auto !important;
+      }
+
+      .book-page { 
+        box-shadow: none !important; 
+        width: 100% !important; 
+        padding: 15mm !important; 
+        height: auto !important; 
+        min-height: 280mm !important;
+        overflow: visible !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        display: block !important;
+      }
+
+      .book-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+
+      .caa-token {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
       @page {
-        margin: 10mm;
+        size: A4 portrait;
+        margin: 0;
       }
     }
   </style>
@@ -391,7 +429,7 @@
           <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
           Leggi Pagina
         </button>
-        <button onclick="window.print()">
+        <button onclick="triggerPDFPrint()">
           <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-4 11H9v-5h6v5zm4-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-2-9H7v4h10V3z"/></svg>
           Stampa PDF
         </button>
@@ -462,7 +500,7 @@
     };
 
     const symbolCache = new Map();
-    const activeBookPage = document.getElementById('active-book-page');
+    let activeBookPage = document.getElementById('active-book-page');
     const pagesList = document.getElementById('pages-list');
 
     window.onload = () => {
@@ -472,8 +510,10 @@
     };
 
     function changePageFormat(selectedFormat) {
-      activeBookPage.classList.remove('format-a4-portrait', 'format-a4-landscape', 'format-a5-portrait', 'format-a3-landscape');
-      activeBookPage.classList.add(selectedFormat);
+      if (activeBookPage) {
+        activeBookPage.classList.remove('format-a4-portrait', 'format-a4-landscape', 'format-a5-portrait', 'format-a3-landscape');
+        activeBookPage.classList.add(selectedFormat);
+      }
       bookState.pages[bookState.currentPageIndex].format = selectedFormat;
     }
 
@@ -507,16 +547,20 @@
     }
 
     function saveCurrentPageDOM() {
-      bookState.pages[bookState.currentPageIndex].html = activeBookPage.innerHTML;
+      if (activeBookPage) {
+        bookState.pages[bookState.currentPageIndex].html = activeBookPage.innerHTML;
+      }
     }
 
     function loadPage(index) {
       const pageData = bookState.pages[index];
-      activeBookPage.innerHTML = pageData.html || '';
-      const format = pageData.format || 'format-a4-portrait';
-      document.getElementById('page-format-select').value = format;
-      changePageFormat(format);
-      activeBookPage.focus();
+      if (activeBookPage) {
+        activeBookPage.innerHTML = pageData.html || '';
+        const format = pageData.format || 'format-a4-portrait';
+        document.getElementById('page-format-select').value = format;
+        changePageFormat(format);
+        activeBookPage.focus();
+      }
     }
 
     function getSingularLemma(word) {
@@ -561,6 +605,8 @@
     }
 
     function initEditorEvents() {
+      if (!activeBookPage) return;
+
       activeBookPage.addEventListener('keydown', async (e) => {
         if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
           const selection = window.getSelection();
@@ -735,8 +781,8 @@
       const color = document.getElementById('text-color-picker').value;
 
       document.documentElement.style.setProperty('--doc-font-family', font);
-      document.documentElement.style.setProperty('--doc-font-size', size);
       document.documentElement.style.setProperty('--doc-text-color', color);
+      document.documentElement.style.setProperty('--doc-font-size', size);
     }
 
     function setAlignment(align) {
@@ -764,10 +810,10 @@
       bookState.showSymbols = !bookState.showSymbols;
       const btn = document.getElementById('toggle-symbols-btn');
       if (bookState.showSymbols) {
-        activeBookPage.classList.remove('hide-symbols');
+        if (activeBookPage) activeBookPage.classList.remove('hide-symbols');
         btn.style.backgroundColor = 'white';
       } else {
-        activeBookPage.classList.add('hide-symbols');
+        if (activeBookPage) activeBookPage.classList.add('hide-symbols');
         btn.style.backgroundColor = '#E3F2FD';
       }
     }
@@ -781,10 +827,49 @@
     }
 
     function readPage() {
+      if (!activeBookPage) return;
       const tokens = activeBookPage.querySelectorAll('.token-text');
       const text = Array.from(tokens).map(t => t.textContent).join(' ');
       if (text) speakWord(text);
     }
+
+    /* GESTIONE STAMPA PDF ASINCRONA */
+    function prepareDocForPrint() {
+      saveCurrentPageDOM();
+
+      const container = document.querySelector('.editor-container');
+      container.innerHTML = '';
+
+      bookState.pages.forEach((pageData, idx) => {
+        const pageEl = document.createElement('div');
+        pageEl.className = `book-page ${pageData.format || 'format-a4-portrait'}`;
+        if (!bookState.showSymbols) pageEl.classList.add('hide-symbols');
+        pageEl.innerHTML = pageData.html || '';
+        container.appendChild(pageEl);
+      });
+
+      // Forza il reflow del DOM da parte del browser prima della stampa
+      void container.offsetHeight;
+    }
+
+    function restoreDocAfterPrint() {
+      const container = document.querySelector('.editor-container');
+      container.innerHTML = `<div class="book-page ${bookState.pages[bookState.currentPageIndex].format}" id="active-book-page" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Area di composizione testo e simboli CAA"></div>`;
+      
+      activeBookPage = document.getElementById('active-book-page');
+      loadPage(bookState.currentPageIndex);
+      initEditorEvents();
+    }
+
+    function triggerPDFPrint() {
+      prepareDocForPrint();
+      // Piccolo timeout per dare tempo al layout di stabilizzarsi prima della stampa
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    }
+
+    window.onafterprint = restoreDocAfterPrint;
   </script>
 </body>
 </html>
