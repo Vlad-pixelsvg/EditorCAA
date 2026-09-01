@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenCAA Book Studio - Disambiguazione Completa</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Comic+Neue:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Parser NLP per l'Italiano -->
+  <script src="https://unpkg.com/it-compromise"></script>
+
+  <style>
+    @font-face {
+      font-family: 'OpenDyslexic';
+      src: url('https://cdn.jsdelivr.net/gh/antijoin/opendyslexic@master/fonts/OpenDyslexic-Regular.otf') format('opentype');
+    }
+
+    :root {
+      --fitz-people: #FFFDE7; --fitz-people-border: #FBC02D;
+      --fitz-action: #E8F5E9; --fitz-action-border: #388E3C;
+      --fitz-object: #FFF3E0; --fitz-object-border: #F57C00;
+      --fitz-descriptor: #E3F2FD; --fitz-descriptor-border: #1976D2;
+      --fitz-social: #FCE4EC; --fitz-social-border: #C2185B;
+      --fitz-misc: #FAFAFA;   --fitz-misc-border: #9E9E9E;
+
+      --ui-bg: #EAECEE;
+      --primary: #005A9E;
+      
+      --doc-font-family: 'Atkinson Hyperlegible', sans-serif;
+      --doc-font-size: 1.1rem;
+      --doc-text-color: #212121;
+      --doc-alignment: left;
+      --symbol-size: 75px;
+      --token-width: 105px;
+      --token-height: 130px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Atkinson Hyperlegible', sans-serif;
+      background-color: var(--ui-bg);
+      color: #333;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOOLBAR */
+    .ribbon {
+      background: #FFFFFF;
+      border-bottom: 1px solid #D1D5DB;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+
+    .ribbon-top {
+      background: var(--primary);
+      color: white;
+      padding: 6px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ribbon-top h1 { font-size: 0.95rem; font-weight: 700; }
+
+    .ribbon-controls {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 8px 16px;
+      gap: 12px;
+      background: #F8F9FA;
+      align-items: center;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-right: 12px;
+      border-right: 1px solid #E0E0E0;
+    }
+
+    .control-group label {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #666;
+      text-transform: uppercase;
+    }
+
+    select, input[type="color"], button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 5px 8px;
+      border-radius: 4px;
+      border: 1px solid #CCC;
+      background: white;
+      cursor: pointer;
+    }
+
+    button { font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    button:hover { background: #EAEAEA; }
+    .btn-action { background: #2E7D32; color: white; border-color: #1B5E20; }
+
+    /* WORKSPACE */
+    .studio-workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .pages-sidebar {
+      width: 200px;
+      background: #FFFFFF;
+      border-right: 1px solid #D1D5DB;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 10px;
+      background: #F3F4F6;
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-header h3 { font-size: 0.8rem; text-transform: uppercase; color: #4B5563; }
+
+    .pages-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .page-thumbnail {
+      border: 2px solid #E5E7EB;
+      border-radius: 4px;
+      padding: 8px;
+      background: #FAFAFA;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .page-thumbnail.active { border-color: var(--primary); background: #EFF6FF; }
+
+    .editor-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .book-page {
+      background: white;
+      width: 800px;
+      height: 1050px;
+      padding: 60px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      outline: none;
+      overflow-y: auto;
+      text-align: var(--doc-alignment);
+      font-family: var(--doc-font-family);
+      font-size: var(--doc-font-size);
+      color: var(--doc-text-color);
+      line-height: 1.8;
+    }
+
+    /* TESSERA CAA */
+    .caa-token {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      width: var(--token-width);
+      height: var(--token-height);
+      padding: 4px;
+      border-radius: 6px;
+      border: 2px solid var(--fitz-misc-border);
+      background-color: var(--fitz-misc);
+      user-select: none;
+      box-sizing: border-box;
+      vertical-align: bottom;
+      margin: 2px 4px;
+      cursor: pointer;
+      contenteditable: false;
+    }
+
+    .symbol-box {
+      width: 100%;
+      height: var(--symbol-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .symbol-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .symbol-placeholder { width: 20px; height: 20px; border: 2px dashed #BDBDBD; border-radius: 50%; }
+
+    .token-text {
+      font-family: var(--doc-font-family);
+      font-size: var(--doc-font-size);
+      color: var(--doc-text-color);
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+
+    /* Schema Cromatico Fitzgerald */
+    .fitz-people     { background-color: var(--fitz-people);     border-color: var(--fitz-people-border); }
+    .fitz-action     { background-color: var(--fitz-action);     border-color: var(--fitz-action-border); }
+    .fitz-object     { background-color: var(--fitz-object);     border-color: var(--fitz-object-border); }
+    .fitz-descriptor { background-color: var(--fitz-descriptor); border-color: var(--fitz-descriptor-border); }
+    .fitz-social     { background-color: var(--fitz-social);     border-color: var(--fitz-social-border); }
+    .fitz-misc       { background-color: var(--fitz-misc);       border-color: var(--fitz-misc-border); }
+
+    .hide-symbols .symbol-box { display: none; }
+    .hide-symbols .caa-token { height: auto; border: none; background: transparent; width: auto; padding: 2px; }
+
+    @media print {
+      body { background: white; }
+      .ribbon, .pages-sidebar { display: none; }
+      .editor-container { padding: 0; }
+      .book-page { box-shadow: none; width: 100%; padding: 0; height: auto; overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="ribbon">
+    <div class="ribbon-top">
+      <h1>📚 OpenCAA Book Studio</h1>
+      <span>Disambiguazione Completa & Engine NLP Native</span>
+    </div>
+    
+    <div class="ribbon-controls">
+      <div class="control-group">
+        <label>Font</label>
+        <select id="font-family-select" onchange="updateFontStyle()">
+          <option value="'Atkinson Hyperlegible', sans-serif">Atkinson (Leggibile)</option>
+          <option value="'OpenDyslexic', sans-serif">OpenDyslexic (Dislessia)</option>
+          <option value="'Comic Neue', cursive">Comic Neue (Infanzia)</option>
+          <option value="'Open Sans', sans-serif">Open Sans (Standard)</option>
+        </select>
+        
+        <select id="font-size-select" onchange="updateFontStyle()">
+          <option value="0.9rem">Piccolo</option>
+          <option value="1.1rem" selected>Medio</option>
+          <option value="1.4rem">Grande</option>
+        </select>
+
+        <input type="color" id="text-color-picker" value="#212121" onchange="updateFontStyle()" title="Colore Testo">
+      </div>
+
+      <div class="control-group">
+        <label>Allinea</label>
+        <button onclick="setAlignment('left')">⬅️</button>
+        <button onclick="setAlignment('center')">↔️</button>
+        <button onclick="setAlignment('right')">➡️</button>
+      </div>
+
+      <div class="control-group">
+        <label>Simboli</label>
+        <select id="symbol-size-select" onchange="updateSymbolSize()">
+          <option value="small">Piccoli</option>
+          <option value="medium" selected>Medi</option>
+          <option value="large">Grandi</option>
+        </select>
+        <button id="toggle-symbols-btn" onclick="toggleSymbols()">🖼️ Mostra/Nascondi</button>
+      </div>
+
+      <div class="control-group" style="border-right:none;">
+        <button class="btn-action" onclick="readPage()">🔊 Leggi Pagina</button>
+        <button onclick="window.print()">🖨️ Stampa PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div class="studio-workspace">
+    <div class="pages-sidebar">
+      <div class="sidebar-header">
+        <h3>Pagine Libro</h3>
+        <button onclick="addNewPage()">+ Aggiungi</button>
+      </div>
+      <div class="pages-list" id="pages-list"></div>
+    </div>
+
+    <div class="editor-container">
+      <div class="book-page" id="active-book-page" contenteditable="true" spellcheck="false"></div>
+    </div>
+  </div>
+
+  <script>
+    let bookState = {
+      pages: [{ id: 1, html: '' }],
+      currentPageIndex: 0,
+      showSymbols: true
+    };
+
+    const PRONOUNS = ["io", "tu", "lui", "lei", "noi", "voi", "loro", "chi", "te", "mi", "ti", "ci", "vi"];
+    const ARTICLES = ["il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "del", "dello", "della", "questo", "quello"];
+
+    // Locuzioni precedute da preposizioni (es. "a pesca" -> pescare)
+    const PREPOSITION_LOCUTIONS = {
+      "pesca": "pescare",
+      "caccia": "cacciare",
+      "nuoto": "nuotare",
+      "ballo": "ballare"
+    };
+
+    // Mappa Lemmatizzazione Verbi + Omografi
+    const HOMONYM_LEMMA_MAP = {
+      "salgo": "salire", "sali": "salire", "sale": "salire", "saliamo": "salire", "salite": "salire", "salgono": "salire",
+      "mangio": "mangiare", "mangi": "mangiare", "mangia": "mangiare", "mangiamo": "mangiare", "mangiate": "mangiare", "mangiano": "mangiare",
+      "vado": "andare", "vai": "andare", "va": "andare", "andiamo": "andare", "vanno": "andare",
+      "hanno": "avere", "ho": "avere", "hai": "avere", "ha": "avere", "abbiamo": "avere",
+      "faccio": "fare", "fai": "fare", "fa": "fare", "facciamo": "fare", "fanno": "fare",
+      "riso": "ridere", "pesca": "pescare", "porta": "portare", "calcio": "calciare"
+    };
+
+    const FITZGERALD_FALLBACK = {
+      people: ["io", "tu", "lui", "lei", "noi", "voi", "loro", "mamma", "papà", "maestra", "bambino", "te"],
+      action: ["vado", "andare", "mangio", "mangiare", "piace", "pescare"],
+      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto"]
+    };
+
+    const symbolCache = new Map();
+    const activeBookPage = document.getElementById('active-book-page');
+    const pagesList = document.getElementById('pages-list');
+
+    window.onload = () => {
+      renderSidebarPages();
+      loadPage(0);
+      initEditorEvents();
+    };
+
+    function renderSidebarPages() {
+      pagesList.innerHTML = '';
+      bookState.pages.forEach((page, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = `page-thumbnail ${index === bookState.currentPageIndex ? 'active' : ''}`;
+        thumb.onclick = () => switchPage(index);
+        thumb.innerHTML = `<span style="font-size:0.75rem; font-weight:bold;">Pagina ${index + 1}</span>`;
+        pagesList.appendChild(thumb);
+      });
+    }
+
+    function addNewPage() {
+      saveCurrentPageDOM();
+      const newPageIndex = bookState.pages.length;
+      bookState.pages.push({ id: newPageIndex + 1, html: '' });
+      renderSidebarPages();
+      switchPage(newPageIndex);
+    }
+
+    function switchPage(index) {
+      saveCurrentPageDOM();
+      bookState.currentPageIndex = index;
+      renderSidebarPages();
+      loadPage(index);
+    }
+
+    function saveCurrentPageDOM() {
+      bookState.pages[bookState.currentPageIndex].html = activeBookPage.innerHTML;
+    }
+
+    function loadPage(index) {
+      const pageData = bookState.pages[index];
+      activeBookPage.innerHTML = pageData.html || '';
+      activeBookPage.focus();
+    }
+
+    /* ==========================================================
+       MOTORE DI DISAMBIGUAZIONE CONTESTUALE E LEMMATIZZAZIONE
+       ========================================================== */
+    function analyzeContextWithNLP(word, fullSentenceContext) {
+      const cleanWord = word.toLowerCase().trim();
+      let searchQuery = cleanWord;
+      let category = 'misc';
+
+      // Estrazione Parola Precedente
+      const words = fullSentenceContext.trim().split(/\s+/);
+      const currentIndex = words.findIndex(w => w.toLowerCase().includes(cleanWord));
+      const prevWord = currentIndex > 0 ? words[currentIndex - 1].toLowerCase().replace(/[^a-zàèéìòù]/g, '') : "";
+
+      // 1. CONTESTO PREPOSIZIONALE (es. "a pesca" -> pescare)
+      if ((prevWord === "a" || prevWord === "in") && PREPOSITION_LOCUTIONS[cleanWord]) {
+        return { searchQuery: PREPOSITION_LOCUTIONS[cleanWord], category: 'action' };
+      }
+
+      // 2. CONTESTO PRONOMINALE (es. "io mangio", "tu sali") -> AZIONE (Verde)
+      if (PRONOUNS.includes(prevWord)) {
+        category = 'action';
+        if (HOMONYM_LEMMA_MAP[cleanWord]) {
+          return { searchQuery: HOMONYM_LEMMA_MAP[cleanWord], category: 'action' };
+        }
+      }
+
+      // 3. CONTESTO ARTICOLO (es. "la pesca", "il sale") -> OGGETTO (Arancione)
+      if (ARTICLES.includes(prevWord)) {
+        category = 'object';
+        return { searchQuery: cleanWord, category: 'object' };
+      }
+
+      // 4. Mappatura verbi diretta (es. "mangio" -> mangiare)
+      if (HOMONYM_LEMMA_MAP[cleanWord] && (category === 'misc' || category === 'action')) {
+        return { searchQuery: HOMONYM_LEMMA_MAP[cleanWord], category: 'action' };
+      }
+
+      // 5. Analisi NLP Generale (it-compromise)
+      try {
+        if (typeof nlp !== 'undefined' && fullSentenceContext.trim().length > 0) {
+          const doc = nlp(fullSentenceContext);
+          const jsonResult = doc.json()[0];
+
+          if (jsonResult && jsonResult.terms) {
+            const matchedTerm = jsonResult.terms.find(t => t.normal.toLowerCase() === cleanWord);
+
+            if (matchedTerm) {
+              const tags = matchedTerm.tags || [];
+
+              if (tags.includes('Verb')) {
+                category = 'action';
+                searchQuery = HOMONYM_LEMMA_MAP[cleanWord] || searchQuery;
+              } else if (tags.includes('Noun') || tags.includes('Honorific')) {
+                category = 'object';
+              } else if (tags.includes('Person') || tags.includes('Pronoun')) {
+                category = 'people';
+              } else if (tags.includes('Adjective')) {
+                category = 'descriptor';
+              }
+              return { searchQuery, category };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("NLP Processing Warning:", err);
+      }
+
+      // 6. Fallback Statico Fitzgerald
+      if (category === 'misc') {
+        for (const [cat, list] of Object.entries(FITZGERALD_FALLBACK)) {
+          if (list.includes(cleanWord)) {
+            category = cat;
+            break;
+          }
+        }
+      }
+
+      return { searchQuery, category };
+    }
+
+    /* ==========================================
+       GESTIONE EDITEUR & CREAZIONE TESSERE
+       ========================================== */
+    function initEditorEvents() {
+      activeBookPage.addEventListener('keydown', async (e) => {
+        if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+          const selection = window.getSelection();
+          if (!selection.rangeCount) return;
+
+          const range = selection.getRangeAt(0);
+          const node = range.startContainer;
+
+          if (node.nodeType === Node.TEXT_NODE) {
+            const textBeforeCursor = node.textContent.substring(0, range.startOffset);
+            const match = textBeforeCursor.match(/(\S+)\s*$/);
+
+            if (match) {
+              e.preventDefault();
+              const fullToken = match[1];
+
+              const cleanWordMatch = fullToken.match(/^([a-zA-ZàèéìòùA-ZÀÈÉÌÒÙ0-9]+)([\?!\.,;:]*)$/);
+              let word = fullToken;
+              let punctuation = '';
+
+              if (cleanWordMatch) {
+                word = cleanWordMatch[1];
+                punctuation = cleanWordMatch[2];
+              }
+
+              const fullSentenceText = node.parentNode.textContent || word;
+
+              const matchIndex = textBeforeCursor.lastIndexOf(fullToken);
+              const newTextBefore = textBeforeCursor.substring(0, matchIndex);
+              node.textContent = newTextBefore + node.textContent.substring(range.startOffset);
+
+              range.setStart(node, newTextBefore.length);
+              range.collapse(true);
+
+              let lastInsertedNode = null;
+
+              if (word.length > 0) {
+                const tokenNode = await createTokenNode(word, fullSentenceText);
+                range.insertNode(tokenNode);
+                lastInsertedNode = tokenNode;
+              }
+
+              if (punctuation.length > 0) {
+                const punctNode = await createTokenNode(punctuation, punctuation);
+                if (lastInsertedNode) {
+                  lastInsertedNode.after(punctNode);
+                } else {
+                  range.insertNode(punctNode);
+                }
+                lastInsertedNode = punctNode;
+              }
+
+              const afterSpaceNode = document.createTextNode(e.key === 'Enter' ? '\n' : '\u00A0');
+              if (lastInsertedNode) {
+                lastInsertedNode.after(afterSpaceNode);
+              } else {
+                range.insertNode(afterSpaceNode);
+              }
+
+              const newRange = document.createRange();
+              newRange.setStartAfter(afterSpaceNode);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+            }
+          }
+        }
+      });
+
+      activeBookPage.addEventListener('click', (e) => {
+        const token = e.target.closest('.caa-token');
+        if (token) {
+          const text = token.querySelector('.token-text').textContent;
+          speakWord(text);
+        }
+      });
+    }
+
+    async function createTokenNode(word, contextText = "") {
+      const { searchQuery, category } = analyzeContextWithNLP(word, contextText);
+
+      const tokenEl = document.createElement('span');
+      tokenEl.className = `caa-token fitz-${category}`;
+      tokenEl.setAttribute('contenteditable', 'false');
+
+      tokenEl.innerHTML = `
+        <span class="symbol-box">
+          <span class="symbol-placeholder"></span>
+        </span>
+        <span class="token-text">${word}</span>
+      `;
+
+      fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'));
+      return tokenEl;
+    }
+
+    async function fetchSymbolImage(searchQuery, containerEl) {
+      if (symbolCache.has(searchQuery)) {
+        containerEl.innerHTML = `<img src="${symbolCache.get(searchQuery)}" alt="${searchQuery}" />`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://api.arasaac.org/api/pictograms/it/search/${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            const symbolId = data[0]._id;
+            const url = `https://static.arasaac.org/pictograms/${symbolId}/${symbolId}_300.png`;
+            symbolCache.set(searchQuery, url);
+            containerEl.innerHTML = `<img src="${url}" alt="${searchQuery}" />`;
+            return;
+          }
+        }
+      } catch (err) { console.warn(err); }
+      containerEl.innerHTML = `<span class="symbol-placeholder"></span>`;
+    }
+
+    /* ==========================================
+       ACCESSIBILITÀ & FORMATTAZIONE
+       ========================================== */
+    function updateFontStyle() {
+      const font = document.getElementById('font-family-select').value;
+      const size = document.getElementById('font-size-select').value;
+      const color = document.getElementById('text-color-picker').value;
+
+      document.documentElement.style.setProperty('--doc-font-family', font);
+      document.documentElement.style.setProperty('--doc-font-size', size);
+      document.documentElement.style.setProperty('--doc-text-color', color);
+    }
+
+    function setAlignment(align) {
+      document.documentElement.style.setProperty('--doc-alignment', align);
+    }
+
+    function updateSymbolSize() {
+      const size = document.getElementById('symbol-size-select').value;
+      if (size === 'small') {
+        document.documentElement.style.setProperty('--symbol-size', '45px');
+        document.documentElement.style.setProperty('--token-width', '80px');
+        document.documentElement.style.setProperty('--token-height', '90px');
+      } else if (size === 'medium') {
+        document.documentElement.style.setProperty('--symbol-size', '75px');
+        document.documentElement.style.setProperty('--token-width', '105px');
+        document.documentElement.style.setProperty('--token-height', '130px');
+      } else if (size === 'large') {
+        document.documentElement.style.setProperty('--symbol-size', '100px');
+        document.documentElement.style.setProperty('--token-width', '130px');
+        document.documentElement.style.setProperty('--token-height', '160px');
+      }
+    }
+
+    function toggleSymbols() {
+      bookState.showSymbols = !bookState.showSymbols;
+      const btn = document.getElementById('toggle-symbols-btn');
+      if (bookState.showSymbols) {
+        activeBookPage.classList.remove('hide-symbols');
+        btn.style.backgroundColor = 'white';
+      } else {
+        activeBookPage.classList.add('hide-symbols');
+        btn.style.backgroundColor = '#E3F2FD';
+      }
+    }
+
+    function speakWord(text) {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'it-IT';
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    function readPage() {
+      const tokens = activeBookPage.querySelectorAll('.token-text');
+      const text = Array.from(tokens).map(t => t.textContent).join(' ');
+      if (text) speakWord(text);
+    }
+  </script>
+</body>
+</html>
