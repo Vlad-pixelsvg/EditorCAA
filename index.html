@@ -306,7 +306,7 @@
     .hide-symbols .symbol-box { display: none; }
     .hide-symbols .caa-token { height: auto; border: none; background: transparent; width: auto; padding: 2px; }
 
-    /* REGOLE DI STAMPA PDF MIGLIORATE */
+    /* REGOLE DI STAMPA PDF */
     @media print {
       html, body {
         background: white !important;
@@ -491,8 +491,15 @@
       "iniziavo": "iniziare", "inizio": "iniziare", "inizia": "iniziare", "iniziamo": "iniziare", "iniziano": "iniziare",
       "provare": "provare", "provo": "provare", "prova": "provare", "provavo": "provare",
       "sento": "sentire", "senti": "sentire", "sente": "sentire", "sentivo": "sentire",
-      "pesca": "pescare", "pesco": "pescare", "peschi": "pescare", "peschiamo": "pescare", "pescano": "pescare"
+      "pesco": "pescare", "peschi": "pescare", "peschiamo": "pescare", "pescano": "pescare"
     };
+
+    const CONTEXT_OVERRIDES = [
+      { match: ["a", "pesca"], searchQuery: "pescare", category: "action" },
+      { match: ["in", "pesca"], searchQuery: "pescare", category: "action" },
+      { match: ["la", "pesca"], searchQuery: "pesca", category: "object" },
+      { match: ["una", "pesca"], searchQuery: "pesca", category: "object" }
+    ];
 
     const FITZGERALD_FALLBACK = {
       people: ["io", "tu", "lui", "lei", "noi", "voi", "loro", "mamma", "papà", "maestra", "bambino", "te", "gli", "mia", "amica", "amico"],
@@ -573,25 +580,33 @@
       return word;
     }
 
-    function analyzeContextWithNLP(word, fullSentenceContext) {
+    function getLastInsertedTokens() {
+      const tokens = [];
+      const container = document.getElementById('active-book-page');
+      if (!container) return tokens;
+
+      const allTokenEls = container.querySelectorAll('.caa-token .token-text');
+      allTokenEls.forEach(el => {
+        if (el.textContent.trim()) {
+          tokens.push(el.textContent.trim());
+        }
+      });
+
+      return tokens;
+    }
+
+    function analyzeContextWithNLP(word, lastTokens = []) {
       const cleanWord = word.toLowerCase().trim();
       let searchQuery = cleanWord;
       let category = 'misc';
 
-      // Estrai la parola precedente nel contesto per rilevare articoli o preposizioni
-      let prevWord = "";
-      if (fullSentenceContext) {
-        const words = fullSentenceContext.trim().split(/\s+/);
-        const idx = words.map(w => w.toLowerCase().replace(/[\?!\.,;:]/g, '')).lastIndexOf(cleanWord);
-        if (idx > 0) {
-          prevWord = words[idx - 1].toLowerCase().replace(/[\?!\.,;:]/g, '');
-        }
-      }
-
-      // Regole basate sul contesto sintattico (es. "a pesca" vs "una pesca" vs "lui pesca")
-      if (ARTICLES.includes(prevWord) || COMPOUND_PREPOSITIONS[prevWord] || prevWord === "a") {
-        if (cleanWord === "pesca") {
-          return { searchQuery: "pesca", category: 'object' };
+      if (lastTokens.length > 0) {
+        const prevTokenText = lastTokens[lastTokens.length - 1].toLowerCase();
+        
+        for (const rule of CONTEXT_OVERRIDES) {
+          if (rule.match[1] === cleanWord && rule.match[0] === prevTokenText) {
+            return { searchQuery: rule.searchQuery, category: rule.category };
+          }
         }
       }
 
@@ -599,19 +614,14 @@
         return { searchQuery: cleanWord, category: 'people' };
       }
 
-      if (LOGICAL_CONNECTIVES[cleanWord]) {
-        return { searchQuery: LOGICAL_CONNECTIVES[cleanWord], category: 'misc' };
-      }
-
-      if (COMPOUND_PREPOSITIONS[cleanWord]) {
-        return { searchQuery: COMPOUND_PREPOSITIONS[cleanWord], category: 'misc' };
+      if (LOGICAL_CONNECTIVES[cleanWord] || COMPOUND_PREPOSITIONS[cleanWord] || PREPOSITIONS.includes(cleanWord)) {
+        return { searchQuery: COMPOUND_PREPOSITIONS[cleanWord] || cleanWord, category: 'misc' };
       }
 
       if (VERB_LEMMA_MAP[cleanWord]) {
         return { searchQuery: VERB_LEMMA_MAP[cleanWord], category: 'action' };
       }
 
-      // Analisi NLP dinamica con it-compromise se disponibile
       if (window.nlp) {
         try {
           const doc = window.nlp(cleanWord);
@@ -666,7 +676,7 @@
                 punctuation = cleanWordMatch[2];
               }
 
-              const fullSentenceText = node.parentNode.textContent || word;
+              const previousTokens = getLastInsertedTokens();
 
               const matchIndex = textBeforeCursor.lastIndexOf(fullToken);
               const newTextBefore = textBeforeCursor.substring(0, matchIndex);
@@ -678,7 +688,7 @@
               let lastInsertedNode = null;
 
               if (word.length > 0) {
-                const tokenNode = await createTokenNode(word, fullSentenceText);
+                const tokenNode = await createTokenNode(word, previousTokens);
                 range.insertNode(tokenNode);
                 lastInsertedNode = tokenNode;
               }
@@ -728,10 +738,11 @@
           if (/^\s+$/.test(token)) {
             fragment.appendChild(document.createTextNode(token.includes('\n') ? '\n' : '\u00A0'));
           } else if (/^[\?!\.,;:]+$/.test(token)) {
-            const punctNode = await createTokenNode(token, token);
+            const punctNode = await createTokenNode(token, []);
             fragment.appendChild(punctNode);
           } else {
-            const tokenNode = await createTokenNode(token, pastedText);
+            const previousTokens = getLastInsertedTokens();
+            const tokenNode = await createTokenNode(token, previousTokens);
             fragment.appendChild(tokenNode);
           }
         }
@@ -752,8 +763,8 @@
       });
     }
 
-    async function createTokenNode(word, contextText = "") {
-      const { searchQuery, category } = analyzeContextWithNLP(word, contextText);
+    async function createTokenNode(word, previousTokens = []) {
+      const { searchQuery, category } = analyzeContextWithNLP(word, previousTokens);
 
       const tokenEl = document.createElement('span');
       tokenEl.className = `caa-token fitz-${category}`;
@@ -872,14 +883,13 @@
       if (text) speakWord(text);
     }
 
-    /* GESTIONE STAMPA PDF ASINCRONA */
     function prepareDocForPrint() {
       saveCurrentPageDOM();
 
       const container = document.querySelector('.editor-container');
       container.innerHTML = '';
 
-      bookState.pages.forEach((pageData, idx) => {
+      bookState.pages.forEach((pageData) => {
         const pageEl = document.createElement('div');
         pageEl.className = `book-page ${pageData.format || 'format-a4-portrait'}`;
         if (!bookState.showSymbols) pageEl.classList.add('hide-symbols');
@@ -887,7 +897,6 @@
         container.appendChild(pageEl);
       });
 
-      // Forza il reflow del DOM da parte del browser prima della stampa
       void container.offsetHeight;
     }
 
