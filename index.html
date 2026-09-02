@@ -460,7 +460,8 @@
     };
 
     const PRONOUNS = ["io", "tu", "lui", "lei", "noi", "voi", "loro", "chi", "te", "mi", "ti", "ci", "vi", "gli", "le"];
-    const ARTICLES = ["il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "questo", "quello", "mia", "mio", "miei", "mie", "tuo", "tua", "suo", "sua"];
+    const ARTICLES = ["il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "questo", "quello", "quest", "quell", "mia", "mio", "miei", "mie", "tuo", "tua", "suo", "sua"];
+    const PREPOSITIONS = ["a", "di", "da", "in", "con", "su", "per", "tra", "fra"];
 
     const COMPOUND_PREPOSITIONS = {
       "del": "di", "dello": "di", "della": "di", "degli": "di", "delle": "di",
@@ -489,13 +490,14 @@
       "detto": "dire", "dico": "dire", "dice": "dire", "diciamo": "dire", "dicono": "dire", "dicevo": "dire",
       "iniziavo": "iniziare", "inizio": "iniziare", "inizia": "iniziare", "iniziamo": "iniziare", "iniziano": "iniziare",
       "provare": "provare", "provo": "provare", "prova": "provare", "provavo": "provare",
-      "sento": "sentire", "senti": "sentire", "sente": "sentire", "sentivo": "sentire"
+      "sento": "sentire", "senti": "sentire", "sente": "sentire", "sentivo": "sentire",
+      "pesca": "pescare", "pesco": "pescare", "peschi": "pescare", "peschiamo": "pescare", "pescano": "pescare"
     };
 
     const FITZGERALD_FALLBACK = {
       people: ["io", "tu", "lui", "lei", "noi", "voi", "loro", "mamma", "papà", "maestra", "bambino", "te", "gli", "mia", "amica", "amico"],
       action: ["vado", "andare", "mangio", "mangiare", "piace", "pescare", "volere", "potere", "dovere", "ho", "avere", "detto", "dire", "iniziavo", "iniziare", "provare"],
-      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto", "qualcosa"],
+      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto", "qualcosa", "pesca"],
       descriptor: ["mia", "mio", "bello", "grande", "piccolo"]
     };
 
@@ -576,6 +578,23 @@
       let searchQuery = cleanWord;
       let category = 'misc';
 
+      // Estrai la parola precedente nel contesto per rilevare articoli o preposizioni
+      let prevWord = "";
+      if (fullSentenceContext) {
+        const words = fullSentenceContext.trim().split(/\s+/);
+        const idx = words.map(w => w.toLowerCase().replace(/[\?!\.,;:]/g, '')).lastIndexOf(cleanWord);
+        if (idx > 0) {
+          prevWord = words[idx - 1].toLowerCase().replace(/[\?!\.,;:]/g, '');
+        }
+      }
+
+      // Regole basate sul contesto sintattico (es. "a pesca" vs "una pesca" vs "lui pesca")
+      if (ARTICLES.includes(prevWord) || COMPOUND_PREPOSITIONS[prevWord] || prevWord === "a") {
+        if (cleanWord === "pesca") {
+          return { searchQuery: "pesca", category: 'object' };
+        }
+      }
+
       if (PRONOUNS.includes(cleanWord) || ["mia", "mio", "miei", "mie"].includes(cleanWord)) {
         return { searchQuery: cleanWord, category: 'people' };
       }
@@ -590,6 +609,21 @@
 
       if (VERB_LEMMA_MAP[cleanWord]) {
         return { searchQuery: VERB_LEMMA_MAP[cleanWord], category: 'action' };
+      }
+
+      // Analisi NLP dinamica con it-compromise se disponibile
+      if (window.nlp) {
+        try {
+          const doc = window.nlp(cleanWord);
+          if (doc.verbs().found) {
+            return { searchQuery: doc.verbs().toInfinitive().text() || cleanWord, category: 'action' };
+          }
+          if (doc.nouns().found) {
+            return { searchQuery: getSingularLemma(cleanWord), category: 'object' };
+          }
+        } catch (e) {
+          console.warn("NLP Parse error:", e);
+        }
       }
 
       searchQuery = getSingularLemma(cleanWord);
@@ -735,13 +769,14 @@
         <span class="token-text">${word}</span>
       `;
 
-      fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'));
+      fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'), word);
       return tokenEl;
     }
 
-    async function fetchSymbolImage(searchQuery, containerEl) {
-      if (symbolCache.has(searchQuery)) {
-        containerEl.innerHTML = `<img src="${symbolCache.get(searchQuery)}" alt="${searchQuery}" />`;
+    async function fetchSymbolImage(searchQuery, containerEl, originalWord = "") {
+      const cacheKey = `${searchQuery}_${originalWord}`;
+      if (symbolCache.has(cacheKey)) {
+        containerEl.innerHTML = `<img src="${symbolCache.get(cacheKey)}" alt="${originalWord || searchQuery}" />`;
         return;
       }
 
@@ -751,9 +786,13 @@
         url = await searchArasaac(searchQuery.toLowerCase());
       }
 
+      if (!url && originalWord && originalWord !== searchQuery) {
+        url = await searchArasaac(originalWord.toLowerCase());
+      }
+
       if (url) {
-        symbolCache.set(searchQuery, url);
-        containerEl.innerHTML = `<img src="${url}" alt="${searchQuery}" />`;
+        symbolCache.set(cacheKey, url);
+        containerEl.innerHTML = `<img src="${url}" alt="${originalWord || searchQuery}" />`;
       } else {
         containerEl.innerHTML = `<span class="symbol-placeholder"></span>`;
       }
@@ -863,7 +902,6 @@
 
     function triggerPDFPrint() {
       prepareDocForPrint();
-      // Piccolo timeout per dare tempo al layout di stabilizzarsi prima della stampa
       setTimeout(() => {
         window.print();
       }, 100);
