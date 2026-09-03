@@ -306,7 +306,7 @@
     .hide-symbols .symbol-box { display: none; }
     .hide-symbols .caa-token { height: auto; border: none; background: transparent; width: auto; padding: 2px; }
 
-    /* REGOLE DI STAMPA PDF MIGLIORATE */
+    /* REGOLE DI STAMPA PDF */
     @media print {
       html, body {
         background: white !important;
@@ -460,7 +460,6 @@
     };
 
     const PRONOUNS = ["io", "tu", "lui", "lei", "noi", "voi", "loro", "chi", "te", "mi", "ti", "ci", "vi", "gli", "le"];
-    const ARTICLES = ["il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "questo", "quello", "quest", "quell", "mia", "mio", "miei", "mie", "tuo", "tua", "suo", "sua"];
     const PREPOSITIONS = ["a", "di", "da", "in", "con", "su", "per", "tra", "fra"];
 
     const COMPOUND_PREPOSITIONS = {
@@ -472,32 +471,25 @@
       "col": "con", "coi": "con"
     };
 
-    const LOGICAL_CONNECTIVES = {
-      "perché": "perché", "perche": "perché", "ma": "ma", "però": "pero",
-      "se": "se", "cioè": "cioe", "quindi": "quindi", "poi": "poi", "mentre": "mentre", "e": "e", "o": "o", "che": "che"
-    };
+    // CLASSI GRAMMATICALI AUTOMATICHE (SENZA DIZIONARIO FISSO)
+    const POS_DETERMINERS = new Set([
+      "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
+      "del", "dello", "della", "degli", "delle", "dal", "dalla", "dallo", "dagli", "dalle",
+      "al", "allo", "alla", "agli", "alle", "nel", "nello", "nella", "negli", "nelle",
+      "sul", "sullo", "sulla", "sugli", "sulle", "questo", "questa", "questi", "queste",
+      "quello", "quella", "quelli", "quelle", "mio", "mia", "miei", "mie", "tuo", "tua", "suo", "sua"
+    ]);
 
-    const VERB_LEMMA_MAP = {
-      "voglio": "volere", "vuoi": "volere", "vuole": "volere", "vogliamo": "volere", "vogliono": "volere",
-      "posso": "potere", "puoi": "potere", "può": "potere", "possiamo": "potere", "possono": "potere",
-      "devo": "dovere", "devi": "dovere", "deve": "dovere", "dobbiamo": "dovere", "devono": "dovere",
-      "so": "sapere", "sai": "sapere", "sa": "sapere", "sappiamo": "sapere", "sanno": "sapere",
-      "salgo": "salire", "sali": "salire", "sale": "salire", "saliamo": "salire", "salgono": "salire",
-      "mangio": "mangiare", "mangi": "mangiare", "mangia": "mangiare", "mangiamo": "mangiare", "mangiano": "mangiare",
-      "vado": "andare", "vai": "andare", "va": "andare", "andiamo": "andare", "vanno": "andare",
-      "ho": "avere", "hai": "avere", "ha": "avere", "abbiamo": "avere", "hanno": "avere", "avevo": "avere",
-      "faccio": "fare", "fai": "fare", "fa": "fare", "facciamo": "fare", "fanno": "fare",
-      "detto": "dire", "dico": "dire", "dice": "dire", "diciamo": "dire", "dicono": "dire", "dicevo": "dire",
-      "iniziavo": "iniziare", "inizio": "iniziare", "inizia": "iniziare", "iniziamo": "iniziare", "iniziano": "iniziare",
-      "provare": "provare", "provo": "provare", "prova": "provare", "provavo": "provare",
-      "sento": "sentire", "senti": "sentire", "sente": "sentire", "sentivo": "sentire",
-      "pesca": "pescare", "pesco": "pescare", "peschi": "pescare", "peschiamo": "pescare", "pescano": "pescare"
-    };
+    const POS_VERB_TRIGGERS = new Set([
+      "ho", "hai", "ha", "abbiamo", "avete", "hanno", "ero", "eri", "era", "eravamo", "eravate", "erano",
+      "sono", "sei", "è", "siamo", "siete", "sto", "stai", "sta", "stiamo", "stanno",
+      "vado", "vai", "va", "andiamo", "vanno", "a", "in", "per", "non"
+    ]);
 
     const FITZGERALD_FALLBACK = {
       people: ["io", "tu", "lui", "lei", "noi", "voi", "loro", "mamma", "papà", "maestra", "bambino", "te", "gli", "mia", "amica", "amico"],
-      action: ["vado", "andare", "mangio", "mangiare", "piace", "pescare", "volere", "potere", "dovere", "ho", "avere", "detto", "dire", "iniziavo", "iniziare", "provare"],
-      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto", "qualcosa", "pesca"],
+      action: ["vado", "andare", "mangio", "mangiare", "piace", "pescare", "volere", "potere", "dovere", "ho", "avere", "detto", "dire", "iniziavo", "iniziare", "provare", "ridere"],
+      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto", "qualcosa", "pesca", "riso", "pasta", "latte", "carne", "pesce", "frutta", "banana", "uovo", "formaggio", "pizza"],
       descriptor: ["mia", "mio", "bello", "grande", "piccolo"]
     };
 
@@ -567,69 +559,98 @@
 
     function getSingularLemma(word) {
       if (word.length <= 3) return word;
-      if (word.endsWith('avo') || word.endsWith('avi') || word.endsWith('ava')) return word;
       if (word.endsWith('i')) return word.slice(0, -1) + 'o';
       if (word.endsWith('e')) return word.slice(0, -1) + 'a';
       return word;
     }
 
-    function analyzeContextWithNLP(word, fullSentenceContext) {
+    function getLastInsertedTokens() {
+      const tokens = [];
+      const container = document.getElementById('active-book-page');
+      if (!container) return tokens;
+
+      const allTokenEls = container.querySelectorAll('.caa-token .token-text');
+      allTokenEls.forEach(el => {
+        if (el.textContent.trim()) {
+          tokens.push(el.textContent.trim());
+        }
+      });
+
+      return tokens;
+    }
+
+    // DISAMBIGUAZIONE E LEMMATIZZAZIONE AUTOMATICA SUI SUFFISSI ITALIANI
+    function convertToInfinitiveLemma(word) {
+      const verbRules = [
+        { suffix: "iso", replace: "idere" },   // riso -> ridere
+        { suffix: "esca", replace: "escare" }, // pesca -> pescare
+        { suffix: "ale", replace: "alire" },   // sale -> salire
+        { suffix: "ato", replace: "are" },    // mangiato -> mangiare
+        { suffix: "uto", replace: "ere" },    // bevuto -> bere
+        { suffix: "ito", replace: "ire" }     // finito -> finire
+      ];
+
+      for (const rule of verbRules) {
+        if (word.endsWith(rule.suffix)) {
+          return word.slice(0, -rule.suffix.length) + rule.replace;
+        }
+      }
+
+      return word;
+    }
+
+    function autoDisambiguateAndLemmatize(word, prevToken) {
+      const clean = word.toLowerCase().trim();
+      
+      // 1. Se preceduto da articolo/partitivo -> OGGETTO (Arancione)
+      if (POS_DETERMINERS.has(prevToken)) {
+        return {
+          searchQuery: clean,
+          category: 'object'
+        };
+      }
+
+      // 2. Se preceduto da ausiliare/verbo di moto -> AZIONE (Verde)
+      if (POS_VERB_TRIGGERS.has(prevToken)) {
+        const lemma = convertToInfinitiveLemma(clean);
+        return {
+          searchQuery: lemma,
+          category: 'action'
+        };
+      }
+
+      // 3. Fallback per desinenze dell'infinito
+      if (clean.endsWith('are') || clean.endsWith('ere') || clean.endsWith('ire')) {
+        return { searchQuery: clean, category: 'action' };
+      }
+
+      return { searchQuery: clean, category: 'object' };
+    }
+
+    function analyzeContextWithNLP(word, lastTokens = []) {
       const cleanWord = word.toLowerCase().trim();
-      let searchQuery = cleanWord;
-      let category = 'misc';
+      const prevToken = lastTokens.length > 0 ? lastTokens[lastTokens.length - 1].toLowerCase() : "";
 
-      // Estrai la parola precedente nel contesto per rilevare articoli o preposizioni
-      let prevWord = "";
-      if (fullSentenceContext) {
-        const words = fullSentenceContext.trim().split(/\s+/);
-        const idx = words.map(w => w.toLowerCase().replace(/[\?!\.,;:]/g, '')).lastIndexOf(cleanWord);
-        if (idx > 0) {
-          prevWord = words[idx - 1].toLowerCase().replace(/[\?!\.,;:]/g, '');
-        }
+      // 1. Preposizioni semplici e articolate (mostra solo il testo senza immagini errate)
+      if (COMPOUND_PREPOSITIONS[cleanWord] || PREPOSITIONS.includes(cleanWord)) {
+        return { searchQuery: cleanWord, category: 'misc', skipSymbolSearch: true };
       }
 
-      // Regole basate sul contesto sintattico (es. "a pesca" vs "una pesca" vs "lui pesca")
-      if (ARTICLES.includes(prevWord) || COMPOUND_PREPOSITIONS[prevWord] || prevWord === "a") {
-        if (cleanWord === "pesca") {
-          return { searchQuery: "pesca", category: 'object' };
-        }
-      }
-
-      if (PRONOUNS.includes(cleanWord) || ["mia", "mio", "miei", "mie"].includes(cleanWord)) {
+      // 2. Pronomi e aggettivi possessivi (Giallo)
+      if (PRONOUNS.includes(cleanWord)) {
         return { searchQuery: cleanWord, category: 'people' };
       }
 
-      if (LOGICAL_CONNECTIVES[cleanWord]) {
-        return { searchQuery: LOGICAL_CONNECTIVES[cleanWord], category: 'misc' };
-      }
+      // 3. Esecuzione Disambiguazione Automatica basata sulle Classi POS
+      const autoResult = autoDisambiguateAndLemmatize(cleanWord, prevToken);
+      if (autoResult) return autoResult;
 
-      if (COMPOUND_PREPOSITIONS[cleanWord]) {
-        return { searchQuery: COMPOUND_PREPOSITIONS[cleanWord], category: 'misc' };
-      }
-
-      if (VERB_LEMMA_MAP[cleanWord]) {
-        return { searchQuery: VERB_LEMMA_MAP[cleanWord], category: 'action' };
-      }
-
-      // Analisi NLP dinamica con it-compromise se disponibile
-      if (window.nlp) {
-        try {
-          const doc = window.nlp(cleanWord);
-          if (doc.verbs().found) {
-            return { searchQuery: doc.verbs().toInfinitive().text() || cleanWord, category: 'action' };
-          }
-          if (doc.nouns().found) {
-            return { searchQuery: getSingularLemma(cleanWord), category: 'object' };
-          }
-        } catch (e) {
-          console.warn("NLP Parse error:", e);
-        }
-      }
-
-      searchQuery = getSingularLemma(cleanWord);
+      // 4. Fallback Fitzgerald
+      let searchQuery = getSingularLemma(cleanWord);
+      let category = 'misc';
 
       for (const [cat, list] of Object.entries(FITZGERALD_FALLBACK)) {
-        if (list.includes(cleanWord)) {
+        if (list.includes(cleanWord) || list.includes(searchQuery)) {
           category = cat;
           break;
         }
@@ -666,7 +687,7 @@
                 punctuation = cleanWordMatch[2];
               }
 
-              const fullSentenceText = node.parentNode.textContent || word;
+              const previousTokens = getLastInsertedTokens();
 
               const matchIndex = textBeforeCursor.lastIndexOf(fullToken);
               const newTextBefore = textBeforeCursor.substring(0, matchIndex);
@@ -678,13 +699,13 @@
               let lastInsertedNode = null;
 
               if (word.length > 0) {
-                const tokenNode = await createTokenNode(word, fullSentenceText);
+                const tokenNode = await createTokenNode(word, previousTokens);
                 range.insertNode(tokenNode);
                 lastInsertedNode = tokenNode;
               }
 
               if (punctuation.length > 0) {
-                const punctNode = await createTokenNode(punctuation, punctuation);
+                const punctNode = await createTokenNode(punctuation, previousTokens);
                 if (lastInsertedNode) {
                   lastInsertedNode.after(punctNode);
                 } else {
@@ -728,10 +749,10 @@
           if (/^\s+$/.test(token)) {
             fragment.appendChild(document.createTextNode(token.includes('\n') ? '\n' : '\u00A0'));
           } else if (/^[\?!\.,;:]+$/.test(token)) {
-            const punctNode = await createTokenNode(token, token);
+            const punctNode = await createTokenNode(token, getLastInsertedTokens());
             fragment.appendChild(punctNode);
           } else {
-            const tokenNode = await createTokenNode(token, pastedText);
+            const tokenNode = await createTokenNode(token, getLastInsertedTokens());
             fragment.appendChild(tokenNode);
           }
         }
@@ -752,8 +773,8 @@
       });
     }
 
-    async function createTokenNode(word, contextText = "") {
-      const { searchQuery, category } = analyzeContextWithNLP(word, contextText);
+    async function createTokenNode(word, previousTokens = []) {
+      const { searchQuery, category, skipSymbolSearch } = analyzeContextWithNLP(word, previousTokens);
 
       const tokenEl = document.createElement('span');
       tokenEl.className = `caa-token fitz-${category}`;
@@ -762,14 +783,21 @@
       tokenEl.setAttribute('role', 'button');
       tokenEl.setAttribute('aria-label', `Tessera CAA: ${word}`);
 
-      tokenEl.innerHTML = `
-        <span class="symbol-box">
-          <span class="symbol-loader"></span>
-        </span>
-        <span class="token-text">${word}</span>
-      `;
+      if (skipSymbolSearch) {
+        tokenEl.innerHTML = `
+          <span class="symbol-box"></span>
+          <span class="token-text">${word}</span>
+        `;
+      } else {
+        tokenEl.innerHTML = `
+          <span class="symbol-box">
+            <span class="symbol-loader"></span>
+          </span>
+          <span class="token-text">${word}</span>
+        `;
+        fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'), word);
+      }
 
-      fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'), word);
       return tokenEl;
     }
 
@@ -887,7 +915,6 @@
         container.appendChild(pageEl);
       });
 
-      // Forza il reflow del DOM da parte del browser prima della stampa
       void container.offsetHeight;
     }
 
