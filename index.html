@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenCAA Book Studio - Accessible Engine</title>
+  <title>OpenCAA Book Studio - Engine Completo</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Comic+Neue:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
   
-  <!-- Parser NLP per l'Italiano -->
   <script src="https://unpkg.com/it-compromise"></script>
 
   <style>
@@ -50,11 +49,6 @@
       overflow: hidden;
     }
 
-    button:focus-visible, select:focus-visible, input:focus-visible, [contenteditable="true"]:focus-visible {
-      outline: 3px solid var(--primary);
-      outline-offset: 2px;
-    }
-
     /* TOOLBAR */
     .ribbon {
       background: #FFFFFF;
@@ -72,13 +66,7 @@
       align-items: center;
     }
 
-    .ribbon-top h1 { 
-      font-size: 0.95rem; 
-      font-weight: 700; 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-    }
+    .ribbon-top h1 { font-size: 0.95rem; font-weight: 700; }
 
     .ribbon-controls {
       display: flex;
@@ -99,8 +87,8 @@
 
     .control-group label {
       font-size: 0.75rem;
-      font-weight: 700;
-      color: #333333;
+      font-weight: bold;
+      color: #666;
       text-transform: uppercase;
     }
 
@@ -109,33 +97,14 @@
       font-size: 0.85rem;
       padding: 5px 8px;
       border-radius: 4px;
-      border: 1px solid #767676;
+      border: 1px solid #CCC;
       background: white;
       cursor: pointer;
     }
 
-    button { 
-      font-weight: 600; 
-      display: inline-flex; 
-      align-items: center; 
-      gap: 6px; 
-    }
-    
+    button { font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
     button:hover { background: #EAEAEA; }
-    
-    .btn-action { 
-      background: #2E7D32; 
-      color: white; 
-      border-color: #1B5E20; 
-    }
-    
-    .btn-action:hover { background: #1B5E20; }
-
-    .btn-icon {
-      width: 16px;
-      height: 16px;
-      fill: currentColor;
-    }
+    .btn-action { background: #2E7D32; color: white; border-color: #1B5E20; }
 
     /* WORKSPACE */
     .studio-workspace {
@@ -161,7 +130,7 @@
       align-items: center;
     }
 
-    .sidebar-header h2 { font-size: 0.8rem; text-transform: uppercase; color: #333333; }
+    .sidebar-header h3 { font-size: 0.8rem; text-transform: uppercase; color: #4B5563; }
 
     .pages-list {
       flex: 1;
@@ -188,15 +157,14 @@
       overflow-y: auto;
       padding: 30px;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 30px;
+      justify-content: center;
     }
 
     .book-page {
       background: white;
-      padding: 50px;
+      width: 800px;
+      height: 1050px;
+      padding: 60px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       box-sizing: border-box;
       outline: none;
@@ -206,28 +174,6 @@
       font-size: var(--doc-font-size);
       color: var(--doc-text-color);
       line-height: 1.8;
-      transition: width 0.2s ease, height 0.2s ease;
-    }
-
-    /* Formati pagina */
-    .book-page.format-a4-portrait {
-      width: 800px;
-      height: 1050px;
-    }
-
-    .book-page.format-a4-landscape {
-      width: 1050px;
-      height: 800px;
-    }
-
-    .book-page.format-a5-portrait {
-      width: 580px;
-      height: 820px;
-    }
-
-    .book-page.format-a3-landscape {
-      width: 1200px;
-      height: 850px;
     }
 
     /* TESSERA CAA */
@@ -260,27 +206,7 @@
     }
 
     .symbol-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    
-    .symbol-loader {
-      width: 22px;
-      height: 22px;
-      border: 3px solid #E0E0E0;
-      border-top: 3px solid var(--primary);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .symbol-placeholder { 
-      width: 20px; 
-      height: 20px; 
-      border: 2px dashed #BDBDBD; 
-      border-radius: 50%; 
-    }
+    .symbol-placeholder { width: 20px; height: 20px; border: 2px dashed #BDBDBD; border-radius: 50%; }
 
     .token-text {
       font-family: var(--doc-font-family);
@@ -295,7 +221,7 @@
       pointer-events: none;
     }
 
-    /* Schema Cromatico Fitzgerald Key */
+    /* Schema Cromatico Fitzgerald */
     .fitz-people     { background-color: var(--fitz-people);     border-color: var(--fitz-people-border); }
     .fitz-action     { background-color: var(--fitz-action);     border-color: var(--fitz-action-border); }
     .fitz-object     { background-color: var(--fitz-object);     border-color: var(--fitz-object-border); }
@@ -306,82 +232,30 @@
     .hide-symbols .symbol-box { display: none; }
     .hide-symbols .caa-token { height: auto; border: none; background: transparent; width: auto; padding: 2px; }
 
-    /* REGOLE DI STAMPA PDF */
+    /* CSS STAMPA PDF PULITA */
     @media print {
-      html, body {
-        background: white !important;
-        height: auto !important;
-        overflow: visible !important;
-      }
-      
-      .ribbon, .pages-sidebar { 
-        display: none !important; 
-      }
-
-      .studio-workspace, .editor-container { 
-        display: block !important; 
-        overflow: visible !important; 
-        padding: 0 !important; 
-        margin: 0 !important; 
-        height: auto !important;
-      }
-
-      .book-page { 
-        box-shadow: none !important; 
-        width: 100% !important; 
-        padding: 15mm !important; 
-        height: auto !important; 
-        min-height: 280mm !important;
-        overflow: visible !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        display: block !important;
-      }
-
-      .book-page:last-child {
-        page-break-after: auto !important;
-        break-after: auto !important;
-      }
-
+      body { background: white; }
+      .ribbon, .pages-sidebar { display: none !important; }
+      .editor-container { padding: 0; }
+      .book-page { box-shadow: none; width: 100%; padding: 0; height: auto; overflow: visible; }
       .caa-token {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-
-      @page {
-        size: A4 portrait;
-        margin: 0;
+        border: none !important;
+        background: transparent !important;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- TOOLBAR -->
-  <header class="ribbon">
+  <div class="ribbon">
     <div class="ribbon-top">
-      <h1>
-        <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
-        OpenCAA Book Studio
-      </h1>
-      <span>Editor CAA Accessibile (WCAG 2.2 compliant)</span>
+      <h1>📚 OpenCAA Book Studio</h1>
+      <span>Disambiguazione Completa & Gestione Avanzata CAA</span>
     </div>
     
-    <div class="ribbon-controls" role="toolbar" aria-label="Strumenti di formattazione ed editing">
+    <div class="ribbon-controls">
       <div class="control-group">
-        <label for="page-format-select">Formato Pagina</label>
-        <select id="page-format-select" onchange="changePageFormat(this.value)">
-          <option value="format-a4-portrait" selected>A4 Verticale</option>
-          <option value="format-a4-landscape">A4 Orizzontale</option>
-          <option value="format-a5-portrait">A5 Tascabile</option>
-          <option value="format-a3-landscape">A3 Tabellone</option>
-        </select>
-      </div>
-
-      <div class="control-group">
-        <label for="font-family-select">Font</label>
+        <label>Font</label>
         <select id="font-family-select" onchange="updateFontStyle()">
           <option value="'Atkinson Hyperlegible', sans-serif">Atkinson (Leggibile)</option>
           <option value="'OpenDyslexic', sans-serif">OpenDyslexic (Dislessia)</option>
@@ -389,79 +263,64 @@
           <option value="'Open Sans', sans-serif">Open Sans (Standard)</option>
         </select>
         
-        <select id="font-size-select" onchange="updateFontStyle()" aria-label="Dimensione carattere">
+        <select id="font-size-select" onchange="updateFontStyle()">
           <option value="0.9rem">Piccolo</option>
           <option value="1.1rem" selected>Medio</option>
           <option value="1.4rem">Grande</option>
         </select>
 
-        <input type="color" id="text-color-picker" value="#212121" onchange="updateFontStyle()" title="Colore Testo" aria-label="Colore del testo">
+        <input type="color" id="text-color-picker" value="#212121" onchange="updateFontStyle()" title="Colore Testo">
       </div>
 
       <div class="control-group">
         <label>Allinea</label>
-        <button onclick="setAlignment('left')" aria-label="Allinea a sinistra">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z"/></svg>
-        </button>
-        <button onclick="setAlignment('center')" aria-label="Allinea al centro">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 15v2h10v-2H7zm-4-8v2h18V7H3zm2 6h14v-2H5v2zm-2 8h18v-2H3v2zM7 3v2h10V3H7z"/></svg>
-        </button>
-        <button onclick="setAlignment('right')" aria-label="Allinea a destra">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z"/></svg>
-        </button>
+        <button onclick="setAlignment('left')">⬅️</button>
+        <button onclick="setAlignment('center')">↔️</button>
+        <button onclick="setAlignment('right')">➡️</button>
       </div>
 
       <div class="control-group">
-        <label for="symbol-size-select">Simboli</label>
+        <label>Simboli</label>
         <select id="symbol-size-select" onchange="updateSymbolSize()">
           <option value="small">Piccoli</option>
           <option value="medium" selected>Medi</option>
           <option value="large">Grandi</option>
         </select>
-        <button id="toggle-symbols-btn" onclick="toggleSymbols()">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-          Mostra/Nascondi
-        </button>
+        <button id="toggle-symbols-btn" onclick="toggleSymbols()">🖼️ Mostra/Nascondi</button>
       </div>
 
       <div class="control-group" style="border-right:none;">
-        <button class="btn-action" onclick="readPage()">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-          Leggi Pagina
-        </button>
-        <button onclick="triggerPDFPrint()">
-          <svg class="btn-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-4 11H9v-5h6v5zm4-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-2-9H7v4h10V3z"/></svg>
-          Stampa PDF
-        </button>
+        <button class="btn-action" onclick="readPage()">🔊 Leggi Pagina</button>
+        <button onclick="window.print()">🖨️ Stampa PDF</button>
       </div>
     </div>
-  </header>
+  </div>
 
-  <!-- WORKSPACE -->
   <div class="studio-workspace">
-    <nav class="pages-sidebar" aria-label="Gestione Pagine">
+    <div class="pages-sidebar">
       <div class="sidebar-header">
-        <h2>Pagine Libro</h2>
-        <button onclick="addNewPage()" aria-label="Aggiungi una nuova pagina">+ Aggiungi</button>
+        <h3>Pagine Libro</h3>
+        <button onclick="addNewPage()">+ Aggiungi</button>
       </div>
-      <div class="pages-list" id="pages-list" role="list"></div>
-    </nav>
+      <div class="pages-list" id="pages-list"></div>
+    </div>
 
-    <main class="editor-container">
-      <div class="book-page format-a4-portrait" id="active-book-page" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Area di composizione testo e simboli CAA"></div>
-    </main>
+    <div class="editor-container">
+      <div class="book-page" id="active-book-page" contenteditable="true" spellcheck="false"></div>
+    </div>
   </div>
 
   <script>
     let bookState = {
-      pages: [{ id: 1, html: '', format: 'format-a4-portrait' }],
+      pages: [{ id: 1, html: '' }],
       currentPageIndex: 0,
       showSymbols: true
     };
 
-    const PRONOUNS = ["io", "tu", "lui", "lei", "noi", "voi", "loro", "chi", "te", "mi", "ti", "ci", "vi", "gli", "le"];
-    const PREPOSITIONS = ["a", "di", "da", "in", "con", "su", "per", "tra", "fra"];
+    const PRONOUNS = ["io", "tu", "lui", "lei", "noi", "voi", "loro", "chi", "te", "mi", "ti", "ci", "vi"];
+    const ARTICLES = ["il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "questo", "quello"];
 
+    // 1. Preposizioni Articolate
     const COMPOUND_PREPOSITIONS = {
       "del": "di", "dello": "di", "della": "di", "degli": "di", "delle": "di",
       "al": "a", "allo": "a", "alla": "a", "agli": "a", "alle": "a",
@@ -471,30 +330,39 @@
       "col": "con", "coi": "con"
     };
 
-    // CLASSI GRAMMATICALI AUTOMATICHE (SENZA DIZIONARIO FISSO)
-    const POS_DETERMINERS = new Set([
-      "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
-      "del", "dello", "della", "degli", "delle", "dal", "dalla", "dallo", "dagli", "dalle",
-      "al", "allo", "alla", "agli", "alle", "nel", "nello", "nella", "negli", "nelle",
-      "sul", "sullo", "sulla", "sugli", "sulle", "questo", "questa", "questi", "queste",
-      "quello", "quella", "quelli", "quelle", "mio", "mia", "miei", "mie", "tuo", "tua", "suo", "sua"
-    ]);
+    // 2. Congiunzioni e Connettori Logici (Struttura Frase / Causa-Effetto)
+    const LOGICAL_CONNECTIVES = {
+      "perché": "perché", "perche": "perché", "ma": "ma", "però": "pero",
+      "se": "se", "cioè": "cioe", "quindi": "quindi", "poi": "poi", "mentre": "mentre", "e": "e", "o": "o"
+    };
 
-    const POS_VERB_TRIGGERS = new Set([
-      "ho", "hai", "ha", "abbiamo", "avete", "hanno", "ero", "eri", "era", "eravamo", "eravate", "erano",
-      "sono", "sei", "è", "siamo", "siete", "sto", "stai", "sta", "stiamo", "stanno",
-      "vado", "vai", "va", "andiamo", "vanno", "a", "in", "per", "non"
-    ]);
+    // 3. Locuzioni Preposizionali
+    const PREPOSITION_LOCUTIONS = {
+      "pesca": "pescare", "caccia": "cacciare", "nuoto": "nuotare", "ballo": "ballare"
+    };
+
+    // 4. Mappa Verbi Modali, Servili e Coniugazioni
+    const VERB_LEMMA_MAP = {
+      "voglio": "volere", "vuoi": "volere", "vuole": "volere", "vogliamo": "volere", "vogliono": "volere",
+      "posso": "potere", "puoi": "potere", "può": "potere", "possiamo": "potere", "possono": "potere",
+      "devo": "dovere", "devi": "dovere", "deve": "dovere", "dobbiamo": "dovere", "devono": "dovere",
+      "so": "sapere", "sai": "sapere", "sa": "sapere", "sappiamo": "sapere", "sanno": "sapere",
+      "salgo": "salire", "sali": "salire", "sale": "salire", "saliamo": "salire", "salgono": "salire",
+      "mangio": "mangiare", "mangi": "mangiare", "mangia": "mangiare", "mangiamo": "mangiare", "mangiano": "mangiare",
+      "vado": "andare", "vai": "andare", "va": "andare", "andiamo": "andare", "vanno": "andare",
+      "ho": "avere", "hai": "avere", "ha": "avere", "abbiamo": "avere", "hanno": "avere",
+      "faccio": "fare", "fai": "fare", "fa": "fare", "facciamo": "fare", "fanno": "fare",
+      "riso": "ridere", "pesca": "pescare", "porta": "portare", "calcio": "calciare"
+    };
 
     const FITZGERALD_FALLBACK = {
-      people: ["io", "tu", "lui", "lei", "noi", "voi", "loro", "mamma", "papà", "maestra", "bambino", "te", "gli", "mia", "amica", "amico"],
-      action: ["vado", "andare", "mangio", "mangiare", "piace", "pescare", "volere", "potere", "dovere", "ho", "avere", "detto", "dire", "iniziavo", "iniziare", "provare", "ridere"],
-      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto", "qualcosa", "pesca", "riso", "pasta", "latte", "carne", "pesce", "frutta", "banana", "uovo", "formaggio", "pizza"],
-      descriptor: ["mia", "mio", "bello", "grande", "piccolo"]
+      people: ["io", "tu", "lui", "lei", "noi", "voi", "loro", "mamma", "papà", "maestra", "bambino", "te"],
+      action: ["vado", "andare", "mangio", "mangiare", "piace", "pescare", "volere", "potere", "dovere"],
+      object: ["casa", "scuola", "mela", "palla", "acqua", "pane", "libro", "bici", "cane", "gatto"]
     };
 
     const symbolCache = new Map();
-    let activeBookPage = document.getElementById('active-book-page');
+    const activeBookPage = document.getElementById('active-book-page');
     const pagesList = document.getElementById('pages-list');
 
     window.onload = () => {
@@ -503,21 +371,11 @@
       initEditorEvents();
     };
 
-    function changePageFormat(selectedFormat) {
-      if (activeBookPage) {
-        activeBookPage.classList.remove('format-a4-portrait', 'format-a4-landscape', 'format-a5-portrait', 'format-a3-landscape');
-        activeBookPage.classList.add(selectedFormat);
-      }
-      bookState.pages[bookState.currentPageIndex].format = selectedFormat;
-    }
-
     function renderSidebarPages() {
       pagesList.innerHTML = '';
       bookState.pages.forEach((page, index) => {
-        const thumb = document.createElement('button');
+        const thumb = document.createElement('div');
         thumb.className = `page-thumbnail ${index === bookState.currentPageIndex ? 'active' : ''}`;
-        thumb.setAttribute('role', 'listitem');
-        thumb.setAttribute('aria-label', `Vai a pagina ${index + 1}`);
         thumb.onclick = () => switchPage(index);
         thumb.innerHTML = `<span style="font-size:0.75rem; font-weight:bold;">Pagina ${index + 1}</span>`;
         pagesList.appendChild(thumb);
@@ -527,8 +385,7 @@
     function addNewPage() {
       saveCurrentPageDOM();
       const newPageIndex = bookState.pages.length;
-      const currentFormat = document.getElementById('page-format-select').value;
-      bookState.pages.push({ id: newPageIndex + 1, html: '', format: currentFormat });
+      bookState.pages.push({ id: newPageIndex + 1, html: '' });
       renderSidebarPages();
       switchPage(newPageIndex);
     }
@@ -541,127 +398,122 @@
     }
 
     function saveCurrentPageDOM() {
-      if (activeBookPage) {
-        bookState.pages[bookState.currentPageIndex].html = activeBookPage.innerHTML;
-      }
+      bookState.pages[bookState.currentPageIndex].html = activeBookPage.innerHTML;
     }
 
     function loadPage(index) {
       const pageData = bookState.pages[index];
-      if (activeBookPage) {
-        activeBookPage.innerHTML = pageData.html || '';
-        const format = pageData.format || 'format-a4-portrait';
-        document.getElementById('page-format-select').value = format;
-        changePageFormat(format);
-        activeBookPage.focus();
-      }
+      activeBookPage.innerHTML = pageData.html || '';
+      activeBookPage.focus();
     }
 
+    // Regola Riduzione Plurale -> Singolare
     function getSingularLemma(word) {
       if (word.length <= 3) return word;
-      if (word.endsWith('i')) return word.slice(0, -1) + 'o';
-      if (word.endsWith('e')) return word.slice(0, -1) + 'a';
+      if (word.endsWith('i')) return word.slice(0, -1) + 'o'; // gatti -> gatto
+      if (word.endsWith('e')) return word.slice(0, -1) + 'a'; // mele -> mela
       return word;
     }
 
-    function getLastInsertedTokens() {
-      const tokens = [];
-      const container = document.getElementById('active-book-page');
-      if (!container) return tokens;
-
-      const allTokenEls = container.querySelectorAll('.caa-token .token-text');
-      allTokenEls.forEach(el => {
-        if (el.textContent.trim()) {
-          tokens.push(el.textContent.trim());
-        }
-      });
-
-      return tokens;
-    }
-
-    // DISAMBIGUAZIONE E LEMMATIZZAZIONE AUTOMATICA SUI SUFFISSI ITALIANI
-    function convertToInfinitiveLemma(word) {
-      const verbRules = [
-        { suffix: "iso", replace: "idere" },   // riso -> ridere
-        { suffix: "esca", replace: "escare" }, // pesca -> pescare
-        { suffix: "ale", replace: "alire" },   // sale -> salire
-        { suffix: "ato", replace: "are" },    // mangiato -> mangiare
-        { suffix: "uto", replace: "ere" },    // bevuto -> bere
-        { suffix: "ito", replace: "ire" }     // finito -> finire
-      ];
-
-      for (const rule of verbRules) {
-        if (word.endsWith(rule.suffix)) {
-          return word.slice(0, -rule.suffix.length) + rule.replace;
-        }
-      }
-
-      return word;
-    }
-
-    function autoDisambiguateAndLemmatize(word, prevToken) {
-      const clean = word.toLowerCase().trim();
-      
-      // 1. Se preceduto da articolo/partitivo -> OGGETTO (Arancione)
-      if (POS_DETERMINERS.has(prevToken)) {
-        return {
-          searchQuery: clean,
-          category: 'object'
-        };
-      }
-
-      // 2. Se preceduto da ausiliare/verbo di moto -> AZIONE (Verde)
-      if (POS_VERB_TRIGGERS.has(prevToken)) {
-        const lemma = convertToInfinitiveLemma(clean);
-        return {
-          searchQuery: lemma,
-          category: 'action'
-        };
-      }
-
-      // 3. Fallback per desinenze dell'infinito
-      if (clean.endsWith('are') || clean.endsWith('ere') || clean.endsWith('ire')) {
-        return { searchQuery: clean, category: 'action' };
-      }
-
-      return { searchQuery: clean, category: 'object' };
-    }
-
-    function analyzeContextWithNLP(word, lastTokens = []) {
+    /* ==========================================================
+       MOTORE DI DISAMBIGUAZIONE CONTESTUALE E LEMMATIZZAZIONE
+       ========================================================== */
+    function analyzeContextWithNLP(word, fullSentenceContext) {
       const cleanWord = word.toLowerCase().trim();
-      const prevToken = lastTokens.length > 0 ? lastTokens[lastTokens.length - 1].toLowerCase() : "";
-
-      // 1. Preposizioni semplici e articolate (mostra solo il testo senza immagini errate)
-      if (COMPOUND_PREPOSITIONS[cleanWord] || PREPOSITIONS.includes(cleanWord)) {
-        return { searchQuery: cleanWord, category: 'misc', skipSymbolSearch: true };
-      }
-
-      // 2. Pronomi e aggettivi possessivi (Giallo)
-      if (PRONOUNS.includes(cleanWord)) {
-        return { searchQuery: cleanWord, category: 'people' };
-      }
-
-      // 3. Esecuzione Disambiguazione Automatica basata sulle Classi POS
-      const autoResult = autoDisambiguateAndLemmatize(cleanWord, prevToken);
-      if (autoResult) return autoResult;
-
-      // 4. Fallback Fitzgerald
-      let searchQuery = getSingularLemma(cleanWord);
+      let searchQuery = cleanWord;
       let category = 'misc';
 
-      for (const [cat, list] of Object.entries(FITZGERALD_FALLBACK)) {
-        if (list.includes(cleanWord) || list.includes(searchQuery)) {
-          category = cat;
-          break;
+      // 1. Congiunzioni e Connettori Logici (perché, ma, se)
+      if (LOGICAL_CONNECTIVES[cleanWord]) {
+        return { searchQuery: LOGICAL_CONNECTIVES[cleanWord], category: 'misc' };
+      }
+
+      // 2. Preposizioni Articolate (es. "nel" -> query: "in")
+      if (COMPOUND_PREPOSITIONS[cleanWord]) {
+        return { searchQuery: COMPOUND_PREPOSITIONS[cleanWord], category: 'misc' };
+      }
+
+      // Estrazione Parola Precedente
+      const words = fullSentenceContext.trim().split(/\s+/);
+      const currentIndex = words.findIndex(w => w.toLowerCase().includes(cleanWord));
+      const prevWord = currentIndex > 0 ? words[currentIndex - 1].toLowerCase().replace(/[^a-zàèéìòù]/g, '') : "";
+
+      // 3. CONTESTO PREPOSIZIONALE (es. "a pesca" -> pescare)
+      if ((prevWord === "a" || prevWord === "in") && PREPOSITION_LOCUTIONS[cleanWord]) {
+        return { searchQuery: PREPOSITION_LOCUTIONS[cleanWord], category: 'action' };
+      }
+
+      // 4. CONTESTO PRONOMINALE (es. "io mangio", "tu sali") -> AZIONE (Verde)
+      if (PRONOUNS.includes(prevWord)) {
+        category = 'action';
+        if (VERB_LEMMA_MAP[cleanWord]) {
+          return { searchQuery: VERB_LEMMA_MAP[cleanWord], category: 'action' };
+        }
+      }
+
+      // 5. CONTESTO ARTICOLO (es. "la pesca", "il sale") -> OGGETTO (Arancione)
+      if (ARTICLES.includes(prevWord)) {
+        category = 'object';
+        const singular = getSingularLemma(cleanWord);
+        return { searchQuery: singular, category: 'object' };
+      }
+
+      // 6. Mappatura verbi diretta e Modali (es. "voglio" -> volere)
+      if (VERB_LEMMA_MAP[cleanWord]) {
+        return { searchQuery: VERB_LEMMA_MAP[cleanWord], category: 'action' };
+      }
+
+      // 7. Analisi NLP Generale (it-compromise)
+      try {
+        if (typeof nlp !== 'undefined' && fullSentenceContext.trim().length > 0) {
+          const doc = nlp(fullSentenceContext);
+          const jsonResult = doc.json()[0];
+
+          if (jsonResult && jsonResult.terms) {
+            const matchedTerm = jsonResult.terms.find(t => t.normal.toLowerCase() === cleanWord);
+
+            if (matchedTerm) {
+              const tags = matchedTerm.tags || [];
+
+              if (tags.includes('Verb')) {
+                category = 'action';
+                searchQuery = VERB_LEMMA_MAP[cleanWord] || searchQuery;
+              } else if (tags.includes('Noun') || tags.includes('Honorific')) {
+                category = 'object';
+                searchQuery = getSingularLemma(searchQuery);
+              } else if (tags.includes('Person') || tags.includes('Pronoun')) {
+                category = 'people';
+              } else if (tags.includes('Adjective')) {
+                category = 'descriptor';
+              }
+              return { searchQuery, category };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("NLP Processing Warning:", err);
+      }
+
+      // 8. Fallback Plurale Sostantivi
+      searchQuery = getSingularLemma(cleanWord);
+
+      // 9. Fallback Statico Fitzgerald
+      if (category === 'misc') {
+        for (const [cat, list] of Object.entries(FITZGERALD_FALLBACK)) {
+          if (list.includes(cleanWord)) {
+            category = cat;
+            break;
+          }
         }
       }
 
       return { searchQuery, category };
     }
 
+    /* ==========================================
+       GESTIONE EDITOR & CREAZIONE TESSERE
+       ========================================== */
     function initEditorEvents() {
-      if (!activeBookPage) return;
-
       activeBookPage.addEventListener('keydown', async (e) => {
         if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
           const selection = window.getSelection();
@@ -687,7 +539,7 @@
                 punctuation = cleanWordMatch[2];
               }
 
-              const previousTokens = getLastInsertedTokens();
+              const fullSentenceText = node.parentNode.textContent || word;
 
               const matchIndex = textBeforeCursor.lastIndexOf(fullToken);
               const newTextBefore = textBeforeCursor.substring(0, matchIndex);
@@ -699,13 +551,13 @@
               let lastInsertedNode = null;
 
               if (word.length > 0) {
-                const tokenNode = await createTokenNode(word, previousTokens);
+                const tokenNode = await createTokenNode(word, fullSentenceText);
                 range.insertNode(tokenNode);
                 lastInsertedNode = tokenNode;
               }
 
               if (punctuation.length > 0) {
-                const punctNode = await createTokenNode(punctuation, previousTokens);
+                const punctNode = await createTokenNode(punctuation, punctuation);
                 if (lastInsertedNode) {
                   lastInsertedNode.after(punctNode);
                 } else {
@@ -731,39 +583,6 @@
         }
       });
 
-      activeBookPage.addEventListener('paste', async (e) => {
-        e.preventDefault();
-        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-        if (!pastedText.trim()) return;
-
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-        const range = selection.getRangeAt(0);
-
-        const tokens = pastedText.match(/[\wàèéìòùA-ZÀÈÉÌÒÙ0-9]+|[\?!\.,;:]+|\s+/g);
-        if (!tokens) return;
-
-        const fragment = document.createDocumentFragment();
-
-        for (let token of tokens) {
-          if (/^\s+$/.test(token)) {
-            fragment.appendChild(document.createTextNode(token.includes('\n') ? '\n' : '\u00A0'));
-          } else if (/^[\?!\.,;:]+$/.test(token)) {
-            const punctNode = await createTokenNode(token, getLastInsertedTokens());
-            fragment.appendChild(punctNode);
-          } else {
-            const tokenNode = await createTokenNode(token, getLastInsertedTokens());
-            fragment.appendChild(tokenNode);
-          }
-        }
-
-        range.deleteContents();
-        range.insertNode(fragment);
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      });
-
       activeBookPage.addEventListener('click', (e) => {
         const token = e.target.closest('.caa-token');
         if (token) {
@@ -773,83 +592,57 @@
       });
     }
 
-    async function createTokenNode(word, previousTokens = []) {
-      const { searchQuery, category, skipSymbolSearch } = analyzeContextWithNLP(word, previousTokens);
+    async function createTokenNode(word, contextText = "") {
+      const { searchQuery, category } = analyzeContextWithNLP(word, contextText);
 
       const tokenEl = document.createElement('span');
       tokenEl.className = `caa-token fitz-${category}`;
       tokenEl.setAttribute('contenteditable', 'false');
-      tokenEl.setAttribute('tabindex', '0');
-      tokenEl.setAttribute('role', 'button');
-      tokenEl.setAttribute('aria-label', `Tessera CAA: ${word}`);
 
-      if (skipSymbolSearch) {
-        tokenEl.innerHTML = `
-          <span class="symbol-box"></span>
-          <span class="token-text">${word}</span>
-        `;
-      } else {
-        tokenEl.innerHTML = `
-          <span class="symbol-box">
-            <span class="symbol-loader"></span>
-          </span>
-          <span class="token-text">${word}</span>
-        `;
-        fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'), word);
-      }
+      tokenEl.innerHTML = `
+        <span class="symbol-box">
+          <span class="symbol-placeholder"></span>
+        </span>
+        <span class="token-text">${word}</span>
+      `;
 
+      fetchSymbolImage(searchQuery, tokenEl.querySelector('.symbol-box'));
       return tokenEl;
     }
 
-    async function fetchSymbolImage(searchQuery, containerEl, originalWord = "") {
-      const cacheKey = `${searchQuery}_${originalWord}`;
-      if (symbolCache.has(cacheKey)) {
-        containerEl.innerHTML = `<img src="${symbolCache.get(cacheKey)}" alt="${originalWord || searchQuery}" />`;
+    async function fetchSymbolImage(searchQuery, containerEl) {
+      if (symbolCache.has(searchQuery)) {
+        containerEl.innerHTML = `<img src="${symbolCache.get(searchQuery)}" alt="${searchQuery}" />`;
         return;
       }
 
-      let url = await searchArasaac(searchQuery);
-
-      if (!url && searchQuery !== searchQuery.toLowerCase()) {
-        url = await searchArasaac(searchQuery.toLowerCase());
-      }
-
-      if (!url && originalWord && originalWord !== searchQuery) {
-        url = await searchArasaac(originalWord.toLowerCase());
-      }
-
-      if (url) {
-        symbolCache.set(cacheKey, url);
-        containerEl.innerHTML = `<img src="${url}" alt="${originalWord || searchQuery}" />`;
-      } else {
-        containerEl.innerHTML = `<span class="symbol-placeholder"></span>`;
-      }
-    }
-
-    async function searchArasaac(query) {
       try {
-        const res = await fetch(`https://api.arasaac.org/api/pictograms/it/search/${encodeURIComponent(query)}`);
+        const res = await fetch(`https://api.arasaac.org/api/pictograms/it/search/${encodeURIComponent(searchQuery)}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
             const symbolId = data[0]._id;
-            return `https://static.arasaac.org/pictograms/${symbolId}/${symbolId}_300.png`;
+            const url = `https://static.arasaac.org/pictograms/${symbolId}/${symbolId}_300.png`;
+            symbolCache.set(searchQuery, url);
+            containerEl.innerHTML = `<img src="${url}" alt="${searchQuery}" />`;
+            return;
           }
         }
-      } catch (err) {
-        console.warn("ARASAAC Fetch Error:", err);
-      }
-      return null;
+      } catch (err) { console.warn(err); }
+      containerEl.innerHTML = `<span class="symbol-placeholder"></span>`;
     }
 
+    /* ==========================================
+       ACCESSIBILITÀ & FORMATTAZIONE
+       ========================================== */
     function updateFontStyle() {
       const font = document.getElementById('font-family-select').value;
       const size = document.getElementById('font-size-select').value;
       const color = document.getElementById('text-color-picker').value;
 
       document.documentElement.style.setProperty('--doc-font-family', font);
-      document.documentElement.style.setProperty('--doc-text-color', color);
       document.documentElement.style.setProperty('--doc-font-size', size);
+      document.documentElement.style.setProperty('--doc-text-color', color);
     }
 
     function setAlignment(align) {
@@ -877,10 +670,10 @@
       bookState.showSymbols = !bookState.showSymbols;
       const btn = document.getElementById('toggle-symbols-btn');
       if (bookState.showSymbols) {
-        if (activeBookPage) activeBookPage.classList.remove('hide-symbols');
+        activeBookPage.classList.remove('hide-symbols');
         btn.style.backgroundColor = 'white';
       } else {
-        if (activeBookPage) activeBookPage.classList.add('hide-symbols');
+        activeBookPage.classList.add('hide-symbols');
         btn.style.backgroundColor = '#E3F2FD';
       }
     }
@@ -894,47 +687,10 @@
     }
 
     function readPage() {
-      if (!activeBookPage) return;
       const tokens = activeBookPage.querySelectorAll('.token-text');
       const text = Array.from(tokens).map(t => t.textContent).join(' ');
       if (text) speakWord(text);
     }
-
-    /* GESTIONE STAMPA PDF ASINCRONA */
-    function prepareDocForPrint() {
-      saveCurrentPageDOM();
-
-      const container = document.querySelector('.editor-container');
-      container.innerHTML = '';
-
-      bookState.pages.forEach((pageData, idx) => {
-        const pageEl = document.createElement('div');
-        pageEl.className = `book-page ${pageData.format || 'format-a4-portrait'}`;
-        if (!bookState.showSymbols) pageEl.classList.add('hide-symbols');
-        pageEl.innerHTML = pageData.html || '';
-        container.appendChild(pageEl);
-      });
-
-      void container.offsetHeight;
-    }
-
-    function restoreDocAfterPrint() {
-      const container = document.querySelector('.editor-container');
-      container.innerHTML = `<div class="book-page ${bookState.pages[bookState.currentPageIndex].format}" id="active-book-page" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Area di composizione testo e simboli CAA"></div>`;
-      
-      activeBookPage = document.getElementById('active-book-page');
-      loadPage(bookState.currentPageIndex);
-      initEditorEvents();
-    }
-
-    function triggerPDFPrint() {
-      prepareDocForPrint();
-      setTimeout(() => {
-        window.print();
-      }, 100);
-    }
-
-    window.onafterprint = restoreDocAfterPrint;
   </script>
 </body>
 </html>
